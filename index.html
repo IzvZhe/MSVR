@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 
-    <title>PA#2</title>
+    <title>CGW</title>
     <style>
         body {
             background-color: #EEEEEE;
@@ -39,9 +39,16 @@
     <input type="color" id="col" value="#ffff00" onchange="draw()"><br>
     <label for="angle">Angle</label>
     <input type="range" name="angle" id="angle" min="-3.14" max="3.14" step="0.02" value="0" onchange="draw()">
-
+    <hr>
+    <label for="highpass">
+        перемкнути стан звукового фільтру високих частот
+    </label>
+    <input type="checkbox" name="highpass" id="highpass" checked><br><br>
+    <audio id="audioComponent" src="https://soundcloud.com/user-529140083/pink-floyd-high-hopes-2"
+        crossorigin="anonymous" controls loop></audio>
+    <hr>
     <div id="canvas-holder">
-        <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
+        <canvas width="600" height="600" id="webglcanvas" style="background-color:blue"></canvas>
     </div>
 
 

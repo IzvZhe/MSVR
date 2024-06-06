@@ -12,6 +12,45 @@ let cam3D;
 let lui;
 let background;
 
+let context, audio, src, highpass, manipulator;
+
+/* Initialize the Audio context. Called from init() */
+function initAudioCtx() {
+    audio = document.getElementById('audioComponent');
+
+    audio.addEventListener('play', () => {
+        if (!context) {
+            context = new AudioContext();
+            src = context.createMediaElementSource(audio);
+            manipulator = context.createPanner();
+            highpass = context.createBiquadFilter();
+            src.connect(manipulator);
+            manipulator.connect(highpass);
+            highpass.connect(context.destination);
+            highpass.type = 'highpass';
+            highpass.frequency.value = 8765;
+            highpass.gain.value = 14;
+            context.resume();
+        }
+    })
+    audio.addEventListener('pause', () => {
+        console.log('pause');
+        context.resume();
+    })
+    const highpassEnabled = document.getElementById('highpass');
+    highpassEnabled.addEventListener('change', function () {
+        if (highpassEnabled.checked) {
+            manipulator.disconnect();
+            manipulator.connect(highpass);
+            highpass.connect(context.destination);
+        } else {
+            manipulator.disconnect();
+            manipulator.connect(context.destination);
+        }
+    });
+    audio.play();
+}
+
 function updateSurface() {
     surface.BufferData(...CreateSurfaceData());
     draw()
@@ -134,6 +173,14 @@ function draw() {
     background.Draw();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.clear(gl.DEPTH_BUFFER_BIT);
+    let soundX = Math.cos(Date.now() * 0.001)
+    let soundY = Math.sin(Date.now() * 0.001)
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, m4.translation(soundX, 0, soundY));
+    light.Draw();
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    if (manipulator) {
+        manipulator.setPosition(soundX, 0, soundY);
+    }
     cam3D.ApplyLeftFrustum();
     modelViewProjection = m4.multiply(cam3D.mProjectionMatrix, m4.multiply(cam3D.mModelViewMatrix, matAccum1));
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
@@ -339,6 +386,7 @@ function init() {
             "<p>Sorry, could not initialize the WebGL graphics context: " + e + "</p>";
         return;
     }
+    initAudioCtx();
     videoStream = CreateStream();
     videoTexture = CreateTexture();
     cam3D = new StereoCamera(

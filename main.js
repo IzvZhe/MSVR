@@ -10,10 +10,13 @@ let c = 0.2;
 let d = 0.1;
 let cam3D;
 let lui;
+let background;
+
 function updateSurface() {
     surface.BufferData(...CreateSurfaceData());
     draw()
 }
+
 function deg2rad(angle) {
     return angle * Math.PI / 180;
 }
@@ -125,6 +128,12 @@ function draw() {
     gl.uniform3fv(shProgram.iLightPos, [r * Math.sin(Date.now() * 0.001), r * Math.cos(Date.now() * 0.001), z]);
     gl.uniform2fv(shProgram.iTextu, textu);
     gl.uniform1f(shProgram.iAngle, document.getElementById('angle').value);
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, m4.identity());
+    gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoStream);
+    background.Draw();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
     cam3D.ApplyLeftFrustum();
     modelViewProjection = m4.multiply(cam3D.mProjectionMatrix, m4.multiply(cam3D.mModelViewMatrix, matAccum1));
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
@@ -236,6 +245,8 @@ function initGL() {
     surface.BufferData(...CreateSurfaceData());
     light = new Model('Surface');
     light.BufferData(...CreateSphereData());
+    background = new Model('Surface');
+    background.BufferData(...CreateBackground());
 
     gl.enable(gl.DEPTH_TEST);
 }
@@ -328,6 +339,8 @@ function init() {
             "<p>Sorry, could not initialize the WebGL graphics context: " + e + "</p>";
         return;
     }
+    videoStream = CreateStream();
+    videoTexture = CreateTexture();
     cam3D = new StereoCamera(
         2000.0,     // Convergence
         0.0,       // Eye Separation
@@ -343,9 +356,9 @@ function init() {
 
     draw();
 }
-
+let texture;
 function LoadTexture() {
-    let texture = gl.createTexture();
+    texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -366,4 +379,53 @@ function LoadTexture() {
         console.log("imageLoaded")
         draw()
     }
+}
+let videoTexture;
+function CreateTexture() {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return texture
+}
+let track;
+let videoStream;
+function CreateStream() {
+    const video = document.createElement('video');
+    video.setAttribute('autoplay', true);
+    navigator.getUserMedia({ video: true, audio: false }, function (stream) {
+        video.srcObject = stream;
+        track = stream.getTracks()[0]; // this line is optional, but needs global variable track if not deleted
+    }, function (e) {
+        console.error('Rejected!', e);
+    });
+    return video;
+}
+function CreateBackground() {
+    const vertices = [
+        [-1, -1, 0],
+        [1, 1, 0],
+        [1, -1, 0],
+        [-1, 1, 0]
+    ];
+    const indices = [1, 0, 3, 0, 1, 2]
+    let vertexList = [];
+    indices.forEach(i => {
+        vertexList.push(...vertices[i])
+    })
+    const textures = [
+        [1, 1],
+        [0, 0],
+        [0, 1],
+        [1, 0]];
+    let textureList = [];
+    indices.forEach(i => {
+        textureList.push(...textures[i])
+    })
+    return [vertexList, vertexList, textureList];
+}
+function planeTextures4() {
+
 }
